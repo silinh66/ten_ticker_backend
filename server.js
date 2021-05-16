@@ -4,9 +4,11 @@ var bodyParser = require("body-parser");
 var mysql = require("mysql");
 var cors = require("cors");
 
-app.use(cors({ origin: "http://localhost:3001" }));
+// app.use(cors({ origin: "http://localhost:3001" }));
 //ok
 // app.use(cors({ origin: "https://ten-ticker-cms.herokuapp.com" }));
+
+app.use(cors({ origin: "https://ten-ticker-cms-dev.herokuapp.com/" }));
 
 app.use(bodyParser.json({ type: "application/json" }));
 app.use(
