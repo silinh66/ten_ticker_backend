@@ -70,12 +70,23 @@ app.listen(PORT, function () {
   console.log("Node app is running on port 3000");
 });
 
+//dev
 var dbTenTicker = mysql.createConnection({
   host: "us-cdbr-east-03.cleardb.com",
-  user: "b2b329e77fd088",
-  password: "57100c49",
-  database: "heroku_6d453306171d11b",
+  user: "bc74e7c7dc5b9e",
+  password: "f04abeb4",
+  database: "heroku_47bd66779dcda20",
 });
+
+//product
+// var dbTenTicker = mysql.createConnection({
+//   host: "us-cdbr-east-03.cleardb.com",
+//   user: "b2b329e77fd088",
+//   password: "57100c49",
+//   database: "heroku_6d453306171d11b",
+// });
+
+//local
 // var dbTenTicker = mysql.createConnection({
 //   host: "localhost",
 //   user: "root",
@@ -83,12 +94,22 @@ var dbTenTicker = mysql.createConnection({
 //   database: "ten_ticker",
 // });
 function handleDisconnect() {
-  dbTenTicker = mysql.createConnection({
+  //dev
+  var dbTenTicker = mysql.createConnection({
     host: "us-cdbr-east-03.cleardb.com",
-    user: "b2b329e77fd088",
-    password: "57100c49",
-    database: "heroku_6d453306171d11b",
+    user: "bc74e7c7dc5b9e",
+    password: "f04abeb4",
+    database: "heroku_47bd66779dcda20",
   });
+
+  //product
+
+  // dbTenTicker = mysql.createConnection({
+  //   host: "us-cdbr-east-03.cleardb.com",
+  //   user: "b2b329e77fd088",
+  //   password: "57100c49",
+  //   database: "heroku_6d453306171d11b",
+  // });
   console.log("restart");
   dbTenTicker.connect(function (err) {
     if (err) {
