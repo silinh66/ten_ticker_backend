@@ -5,8 +5,8 @@ var mysql = require("mysql");
 var cors = require("cors");
 
 var whitelist = [
-  "https://ten-ticker-cms-dev.herokuapp.com/",
-  "http://ten-ticker-cms-dev.herokuapp.com/",
+  "https://ten-ticker-cms-dev.herokuapp.com",
+  "http://ten-ticker-cms-dev.herokuapp.com",
 ];
 var corsOptions = {
   origin: function (origin, callback) {
