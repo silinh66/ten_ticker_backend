@@ -4,11 +4,30 @@ var bodyParser = require("body-parser");
 var mysql = require("mysql");
 var cors = require("cors");
 
+var whitelist = [
+  "https://ten-ticker-cms-dev.herokuapp.com/",
+  "http://ten-ticker-cms-dev.herokuapp.com/",
+];
+var corsOptions = {
+  origin: function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+};
+
+app.use(cors(corsOptions));
+
+//local
 // app.use(cors({ origin: "http://localhost:3001" }));
-//ok
+
+//product
 // app.use(cors({ origin: "https://ten-ticker-cms.herokuapp.com" }));
 
-app.use(cors({ origin: "https://ten-ticker-cms-dev.herokuapp.com/" }));
+//dev
+// app.use(cors({ origin: "https://ten-ticker-cms-dev.herokuapp.com" }));
 
 app.use(bodyParser.json({ type: "application/json" }));
 app.use(
@@ -70,13 +89,22 @@ app.listen(PORT, function () {
   console.log("Node app is running on port 3000");
 });
 
-//dev
-var dbTenTicker = mysql.createConnection({
+var db_config = {
   host: "us-cdbr-east-03.cleardb.com",
   user: "bc74e7c7dc5b9e",
   password: "f04abeb4",
   database: "heroku_47bd66779dcda20",
-});
+};
+
+var dbTenTicker;
+
+//dev
+// var dbTenTicker = mysql.createConnection({
+//   host: "us-cdbr-east-03.cleardb.com",
+//   user: "bc74e7c7dc5b9e",
+//   password: "f04abeb4",
+//   database: "heroku_47bd66779dcda20",
+// });
 
 //product
 // var dbTenTicker = mysql.createConnection({
@@ -94,13 +122,14 @@ var dbTenTicker = mysql.createConnection({
 //   database: "ten_ticker",
 // });
 function handleDisconnect() {
+  dbTenTicker = mysql.createConnection(db_config);
   //dev
-  var dbTenTicker = mysql.createConnection({
-    host: "us-cdbr-east-03.cleardb.com",
-    user: "bc74e7c7dc5b9e",
-    password: "f04abeb4",
-    database: "heroku_47bd66779dcda20",
-  });
+  // var dbTenTicker = mysql.createConnection({
+  //   host: "us-cdbr-east-03.cleardb.com",
+  //   user: "bc74e7c7dc5b9e",
+  //   password: "f04abeb4",
+  //   database: "heroku_47bd66779dcda20",
+  // });
 
   //product
 
@@ -112,6 +141,7 @@ function handleDisconnect() {
   // });
   console.log("restart");
   dbTenTicker.connect(function (err) {
+    console.log("Connection OK");
     if (err) {
       console.log("error when connecting to db:", err);
       setTimeout(handleDisconnect, 2000);
@@ -224,6 +254,114 @@ app.delete("/tenticker", function (req, res) {
     "DELETE FROM data WHERE id in (?)",
     [data_id],
     function (error, results, fields) {
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results,
+        message: "Data has been delete successfully.",
+      });
+    }
+  );
+});
+
+// Retrieve all activity
+app.get("/activity", function (req, res) {
+  dbTenTicker.query(
+    "SELECT * FROM activity",
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({ error: false, data: results, message: "data list." });
+    }
+  );
+});
+
+// Retrieve acitivity with id
+app.get("/tenticker/:id", function (req, res) {
+  let activity_id = req.params.id;
+  if (!activity_id) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide activity_id" });
+  }
+  dbTenTicker.query(
+    "SELECT * FROM activity where id=?",
+    activity_id,
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results[0],
+        message: "data list.",
+      });
+    }
+  );
+});
+
+// Add a new activity
+app.post("/activity/add", function (req, res) {
+  let activity = req.body.data;
+  console.log("activity", activity);
+  if (!activity) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide activity" });
+  }
+  dbTenTicker.query(
+    "INSERT INTO activity VALUES (?, ?, ?, ?)",
+    [...activity],
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results,
+        message: "New activity has been created successfully.",
+      });
+    }
+  );
+});
+
+//  Update activity with id
+app.put("/activity", function (req, res) {
+  let activity_id = req.body.activity_id;
+  let activity = req.body.data;
+  console.log("activity_id", activity_id);
+  console.log("activity", activity);
+  if (!activity_id || !activity) {
+    return res.status(400).send({
+      error: data,
+      message: "Please provide activity and activity_id",
+    });
+  }
+  dbTenTicker.query(
+    "UPDATE activity SET id = ?, activity_date = ?,  activity = ?, user_name WHERE id = ?",
+    [...activity, activity_id],
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results,
+        message: "activity has been updated successfully.",
+      });
+    }
+  );
+});
+
+//  Delete activity
+app.delete("/activity", function (req, res) {
+  console.log("req.body", req.body);
+  let activity_time = req.body.activity_time;
+  console.log("activity_time", activity_time);
+  if (!activity_time) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide activity_time" });
+  }
+  dbTenTicker.query(
+    "DELETE FROM activity WHERE activity_date > ? AND activity_date < ?",
+    // "DELETE FROM activity WHERE id in (?)",
+    [...activity_time],
+    function (error, results, fields) {
+      console.log("delete success");
       if (error) throw error;
       return res.send({
         error: false,
