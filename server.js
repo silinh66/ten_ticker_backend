@@ -4,6 +4,8 @@ var bodyParser = require("body-parser");
 var mysql = require("mysql");
 var cors = require("cors");
 
+//dev
+
 var whitelist = [
   "https://ten-ticker-cms-dev.herokuapp.com",
   "http://ten-ticker-cms-dev.herokuapp.com",
@@ -25,9 +27,6 @@ app.use(cors(corsOptions));
 
 //product
 // app.use(cors({ origin: "https://ten-ticker-cms.herokuapp.com" }));
-
-//dev
-// app.use(cors({ origin: "https://ten-ticker-cms-dev.herokuapp.com" }));
 
 app.use(bodyParser.json({ type: "application/json" }));
 app.use(
@@ -360,6 +359,30 @@ app.delete("/activity", function (req, res) {
     "DELETE FROM activity WHERE activity_date > ? AND activity_date < ?",
     // "DELETE FROM activity WHERE id in (?)",
     [...activity_time],
+    function (error, results, fields) {
+      console.log("delete success");
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results,
+        message: "Data has been delete successfully.",
+      });
+    }
+  );
+});
+
+app.delete("/activity/check", function (req, res) {
+  console.log("req.body", req.body);
+  let activity_id = req.body.activity_id;
+  console.log("activity_id", activity_id);
+  if (!activity_id) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide activity_id" });
+  }
+  dbTenTicker.query(
+    "DELETE FROM activity WHERE id in (?)",
+    [activity_id],
     function (error, results, fields) {
       console.log("delete success");
       if (error) throw error;
