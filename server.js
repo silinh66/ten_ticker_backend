@@ -20,7 +20,7 @@ var corsOptions = {
   },
 };
 
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
 
 //local
 // app.use(cors({ origin: "http://localhost:3001" }));
