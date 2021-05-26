@@ -10,7 +10,7 @@ var whitelist = [
   "https://ten-ticker-cms-dev.herokuapp.com",
   "http://ten-ticker-cms-dev.herokuapp.com",
   "http://cms.tentickers.net",
-  "https://cms.tentickers.net/",
+  "https://cms.tentickers.net",
 ];
 var corsOptions = {
   origin: function (origin, callback) {
