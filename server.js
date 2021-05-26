@@ -9,6 +9,7 @@ var cors = require("cors");
 var whitelist = [
   "https://ten-ticker-cms-dev.herokuapp.com",
   "http://ten-ticker-cms-dev.herokuapp.com",
+  "http://cms.tentickers.net",
 ];
 var corsOptions = {
   origin: function (origin, callback) {
