@@ -4,6 +4,8 @@ var bodyParser = require("body-parser");
 var mysql = require("mysql");
 var cors = require("cors");
 
+var isProduct = false;
+
 //dev
 
 var whitelist = [
@@ -22,7 +24,7 @@ var corsOptions = {
   },
 };
 
-app.use(cors(corsOptions));
+app.use(cors(isProduct ? corsOptions : { origin: "http://localhost:3001" }));
 
 //local
 // app.use(cors({ origin: "http://localhost:3001" }));
@@ -90,16 +92,41 @@ app.listen(PORT, function () {
   console.log("Node app is running on port 3000");
 });
 
-var db_config = {
-  host: "us-cdbr-east-03.cleardb.com",
-  user: "bc74e7c7dc5b9e",
-  password: "f04abeb4",
-  database: "heroku_47bd66779dcda20",
-};
+//product cPanel db_config
+var db_config = isProduct
+  ? {
+      host: "localhost",
+      // user: "zcegdeab_ten_ticker",
+      user: "zcegdeab_linhken_ten_ticker",
+      password: "silinh66*",
+      // password: "D8XW!d[Lkm$p",
+
+      database: "zcegdeab_ten_ticker",
+    }
+  : {
+      // host: "us-cdbr-east-03.cleardb.com",
+      // user: "bc74e7c7dc5b9e",
+      // password: "f04abeb4",
+      // database: "heroku_47bd66779dcda20",
+
+      //local
+      host: "localhost",
+      user: "root",
+      password: "123456",
+      database: "ten_ticker",
+    };
+
+//dev heroku db_config
+// var db_config = {
+//   host: "us-cdbr-east-03.cleardb.com",
+//   user: "bc74e7c7dc5b9e",
+//   password: "f04abeb4",
+//   database: "heroku_47bd66779dcda20",
+// };
 
 var dbTenTicker;
 
-//dev
+//dev heroku
 // var dbTenTicker = mysql.createConnection({
 //   host: "us-cdbr-east-03.cleardb.com",
 //   user: "bc74e7c7dc5b9e",
@@ -107,7 +134,7 @@ var dbTenTicker;
 //   database: "heroku_47bd66779dcda20",
 // });
 
-//product
+//product heroku
 // var dbTenTicker = mysql.createConnection({
 //   host: "us-cdbr-east-03.cleardb.com",
 //   user: "b2b329e77fd088",
@@ -124,22 +151,6 @@ var dbTenTicker;
 // });
 function handleDisconnect() {
   dbTenTicker = mysql.createConnection(db_config);
-  //dev
-  // var dbTenTicker = mysql.createConnection({
-  //   host: "us-cdbr-east-03.cleardb.com",
-  //   user: "bc74e7c7dc5b9e",
-  //   password: "f04abeb4",
-  //   database: "heroku_47bd66779dcda20",
-  // });
-
-  //product
-
-  // dbTenTicker = mysql.createConnection({
-  //   host: "us-cdbr-east-03.cleardb.com",
-  //   user: "b2b329e77fd088",
-  //   password: "57100c49",
-  //   database: "heroku_6d453306171d11b",
-  // });
   console.log("restart");
   dbTenTicker.connect(function (err) {
     console.log("Connection OK");
@@ -163,6 +174,7 @@ function handleDisconnect() {
 
 handleDisconnect();
 
+/*------------------DATA---------------------*/
 // Retrieve all data
 app.get("/tenticker", function (req, res) {
   dbTenTicker.query("SELECT * FROM data", function (error, results, fields) {
@@ -203,7 +215,7 @@ app.post("/tenticker/add", function (req, res) {
       .send({ error: true, message: "Please provide data" });
   }
   dbTenTicker.query(
-    "INSERT INTO data VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO data VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [...data],
     function (error, results, fields) {
       if (error) throw error;
@@ -221,14 +233,14 @@ app.put("/tenticker", function (req, res) {
   let data_id = req.body.data_id;
   let data = req.body.data;
   console.log("data_id", data_id);
-  console.log("data", data);
+  console.log("data", data[22]);
   if (!data_id || !data) {
     return res
       .status(400)
       .send({ error: data, message: "Please provide data and data_id" });
   }
   dbTenTicker.query(
-    "UPDATE data SET id = ?, content_code = ?, writer_code = ?, full_title =?, content_raw = ?, writer_name=?,  content_status=?,  content_final = ?, content_note = ?, content_date = ?, composer_code = ?, composer_name = ?, audio_date = ?, link_audio = ?, audio_status = ? ,audio_note = ?, writer_nick =?, composer_nick = ?, editor_name=?,  video_date=?,  footage = ?, editor_code = ?, link_video = ?, video_status = ?, video_note = ?, link_youtube = ?, public_date = ?, is_first_public = ?, is_first_content_final =?, is_first_audio = ?, is_first_video = ?, add_composer_date = ?, add_ve_date = ?, confirm_content_date = ?, confirm_audio_date = ?, salary_index = ?  WHERE id = ?",
+    "UPDATE data SET id = ?, content_code = ?, writer_code = ?, full_title =?, content_raw = ?, writer_name=?,  content_status=?,  content_final = ?, content_note = ?, content_date = ?, composer_code = ?, composer_name = ?, audio_date = ?, link_audio = ?, audio_status = ? ,audio_note = ?, writer_nick =?, composer_nick = ?, editor_name=?,  video_date=?,  footage = ?, editor_code = ?, link_video = ?, video_status = ?, video_note = ?, link_youtube = ?, public_date = ?, is_first_public = ?, is_first_content_final =?, is_first_audio = ?, is_first_video = ?, add_composer_date = ?, add_ve_date = ?, confirm_content_date = ?, confirm_audio_date = ?, salary_index = ?, is_new = ?  WHERE id = ?",
     [...data, data_id],
     function (error, results, fields) {
       if (error) throw error;
@@ -265,6 +277,20 @@ app.delete("/tenticker", function (req, res) {
   );
 });
 
+//Delete all data
+app.delete("/tenticker/all", function (req, res) {
+  dbTenTicker.query("TRUNCATE TABLE data", function (error, results, field) {
+    if (error) throw error;
+    return res.send({
+      error: false,
+      data: results,
+      message: "Delete all data successfully",
+    });
+  });
+});
+
+/*------------------ACTIVITY---------------------*/
+
 // Retrieve all activity
 app.get("/activity", function (req, res) {
   dbTenTicker.query(
@@ -277,7 +303,7 @@ app.get("/activity", function (req, res) {
 });
 
 // Retrieve acitivity with id
-app.get("/tenticker/:id", function (req, res) {
+app.get("/activity/:id", function (req, res) {
   let activity_id = req.params.id;
   if (!activity_id) {
     return res
@@ -374,9 +400,7 @@ app.delete("/activity", function (req, res) {
 });
 
 app.delete("/activity/check", function (req, res) {
-  console.log("req.body", req.body);
   let activity_id = req.body.activity_id;
-  console.log("activity_id", activity_id);
   if (!activity_id) {
     return res
       .status(400)
@@ -392,6 +416,181 @@ app.delete("/activity/check", function (req, res) {
         error: false,
         data: results,
         message: "Data has been delete successfully.",
+      });
+    }
+  );
+});
+
+/*------------------SALARY---------------------*/
+// Retrieve all salary
+app.post("/salary", function (req, res) {
+  let month = req.body.month;
+  console.log("month", month);
+  dbTenTicker.query(
+    "SELECT * FROM salary WHERE thang = ?",
+    month,
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({ error: false, data: results, message: "salary list." });
+    }
+  );
+});
+
+// // Retrieve salary with id
+// app.get("/salary/:id", function (req, res) {
+//   let salary = req.params.id;
+//   if (!salary_id) {
+//     return res
+//       .status(400)
+//       .send({ error: true, message: "Please provide salary_id" });
+//   }
+//   dbTenTicker.query(
+//     "SELECT * FROM salary where id=?",
+//     salary_id,
+//     function (error, results, fields) {
+//       if (error) throw error;
+//       return res.send({
+//         error: false,
+//         data: results[0],
+//         message: "salary list.",
+//       });
+//     }
+//   );
+// });
+
+// Add a new salary
+app.post("/salary/add", function (req, res) {
+  let salary = req.body.salary;
+  console.log("salary", salary);
+  if (!salary) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide salary" });
+  }
+  dbTenTicker.query(
+    "INSERT INTO salary VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [...salary],
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results,
+        message: "New salary has been created successfully.",
+      });
+    }
+  );
+});
+
+//  Update salary with id
+// app.put("/salary", function (req, res) {
+//   let salary_id = req.body.salary_id;
+//   let salary = req.body.data;
+//   console.log("salary_id", salary_id);
+//   console.log("salary", salary);
+//   if (!salary_id || !salary) {
+//     return res.status(400).send({
+//       error: data,
+//       message: "Please provide salary and salary_id",
+//     });
+//   }
+//   dbTenTicker.query(
+//     "UPDATE salary_temp SET id = ?, thuong = ?, phat = ?, note_khac = ?  WHERE id = ?",
+//     [...salary, salary_id],
+//     function (error, results, fields) {
+//       if (error) throw error;
+//       return res.send({
+//         error: false,
+//         data: results,
+//         message: "salary has been updated successfully.",
+//       });
+//     }
+//   );
+// });
+
+//Delete all salary in month
+app.delete("/salary/check", function (req, res) {
+  console.log("req.body", req.body);
+  let thang = req.body.thang;
+  console.log("thang", thang);
+  if (!thang) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide thang" });
+  }
+  dbTenTicker.query(
+    "DELETE FROM salary WHERE thang = ?",
+    thang,
+    function (error, results, fields) {
+      console.log("delete salary success");
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results,
+        message: "salary has been delete successfully.",
+      });
+    }
+  );
+});
+
+/*------------------SALARY_TEMP---------------------*/
+
+// Retrieve all salary_temp
+app.post("/salary_temp", function (req, res) {
+  let month = req.body.month;
+  console.log("month", month);
+  dbTenTicker.query(
+    "SELECT * FROM salary_temp WHERE thang = ?",
+    month,
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({ error: false, data: results, message: "salary list." });
+    }
+  );
+});
+
+// Add a new salary
+app.post("/salary_temp/add", function (req, res) {
+  let salary = req.body.salary;
+  console.log("salary", salary);
+  if (!salary) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide salary" });
+  }
+  dbTenTicker.query(
+    "INSERT INTO salary_temp VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [...salary],
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results,
+        message: "New salary has been created successfully.",
+      });
+    }
+  );
+});
+
+//Delete all salary_temp in month
+app.delete("/salary_temp/check", function (req, res) {
+  console.log("req.body", req.body);
+  let thang = req.body.thang;
+  console.log("thang", thang);
+  if (!thang) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide thang" });
+  }
+  dbTenTicker.query(
+    "DELETE FROM salary_temp WHERE thang = ?",
+    thang,
+    function (error, results, fields) {
+      console.log("delete salary success");
+      if (error) throw error;
+      return res.send({
+        error: false,
+        data: results,
+        message: "salary has been delete successfully.",
       });
     }
   );
