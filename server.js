@@ -60,9 +60,7 @@ callApi = async (auth) => {
       // console.log("averageViewDuration", response.data.rows[0][6]);
       yapiResponse = response.data.rows;
     })
-    .catch((error) =>
-      console.log("The API returned an error: ", error.message)
-    );
+    .catch((error) => console.log("The API returned an error: ", error));
   console.log("yapiResponse", yapiResponse);
   return yapiResponse;
 };
@@ -677,10 +675,9 @@ app.get("/authen", function (req, res) {
 app.get("/getToken", function (req, res) {
   let code = req.query.code;
   console.log("code", code);
-  
 
   oAuth2Client.getToken(code, async (err, token) => {
-    console.log('token', token);
+    console.log("token", token);
     // oAuth2Client.setCredentials(token);
     // const result = await callApi(oAuth2Client);
     // console.log("resulttttttt", result);
@@ -688,16 +685,16 @@ app.get("/getToken", function (req, res) {
   });
 });
 
-app.post('/yapi', async function(req, res) {
+app.post("/yapi", async function (req, res) {
   let token = req.body.token;
-  console.log('token', token);
+  console.log("token", token);
 
   oAuth2Client.setCredentials(token);
   const result = await callApi(oAuth2Client);
   console.log("resulttttttt", result);
 
   return res.send({ error: false, data: result, message: "data list." });
-})
+});
 
 // const authYoutube = async () => {
 //   //   await promisify(doc.useServiceAccountAuth)(creds);
