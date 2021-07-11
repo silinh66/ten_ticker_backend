@@ -3,6 +3,69 @@ var app = express();
 var bodyParser = require("body-parser");
 var mysql = require("mysql");
 var cors = require("cors");
+// var authYoutube = require("./test");
+
+const fs = require("fs");
+const readline = require("readline");
+const { google } = require("googleapis");
+// const GoogleSpreadsheet = require('google-spreadsheet');
+const { promisify } = require("util");
+
+const scope = [
+  "https://www.googleapis.com/auth/youtube.readonly",
+  "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+  "https://www.googleapis.com/auth/youtubepartner",
+];
+
+var oAuth2Client, authUrl, callApi;
+
+fs.readFile("oauth-client-creds.json", (err, content) => {
+  if (err) {
+    return console.log("Cannot load client secret file:", err);
+  }
+  // Authorize a client with credentials, then make API call.
+  const credentials = JSON.parse(content);
+  const { client_secret, client_id, redirect_uris } = credentials.installed;
+  oAuth2Client = new google.auth.OAuth2(
+    client_id,
+    client_secret,
+    redirect_uris[0]
+  );
+  authUrl = oAuth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: scope,
+    prompt: "consent",
+  });
+});
+
+callApi = async (auth) => {
+  var yapiResponse;
+  const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+  await youtubeAnalytics.reports
+    .query({
+      startDate: "2017-06-05",
+      endDate: "2021-07-03",
+      ids: "channel==MINE",
+      filters: "video==RT-7DORV5m8",
+      metrics:
+        "estimatedRevenue,views,comments,likes,dislikes,estimatedMinutesWatched,averageViewDuration",
+    })
+    .then(async (response) => {
+      // console.log("estimatedRevenue", response.data.rows[0][0]);
+      // console.log("views", response.data.rows[0][1]);
+      // console.log("comments", response.data.rows[0][2]);
+      // console.log("likes", response.data.rows[0][3]);
+      // console.log("dislikes", response.data.rows[0][4]);
+      // console.log("estimatedMinutesWatched", response.data.rows[0][5]);
+      // console.log("averageViewDuration", response.data.rows[0][6]);
+      yapiResponse = response.data.rows;
+    })
+    .catch((error) =>
+      console.log("The API returned an error: ", error.message)
+    );
+  console.log("yapiResponse", yapiResponse);
+  return yapiResponse;
+};
 
 var isProduct = false;
 
@@ -425,10 +488,12 @@ app.delete("/activity/check", function (req, res) {
 // Retrieve all salary
 app.post("/salary", function (req, res) {
   let month = req.body.month;
+  let year = req.body.year;
   console.log("month", month);
+  console.log("year", year);
   dbTenTicker.query(
-    "SELECT * FROM salary WHERE thang = ?",
-    month,
+    "SELECT * FROM salary WHERE thang = ? && nam = ?",
+    [month, year],
     function (error, results, fields) {
       if (error) throw error;
       return res.send({ error: false, data: results, message: "salary list." });
@@ -468,7 +533,7 @@ app.post("/salary/add", function (req, res) {
       .send({ error: true, message: "Please provide salary" });
   }
   dbTenTicker.query(
-    "INSERT INTO salary VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO salary VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [...salary],
     function (error, results, fields) {
       if (error) throw error;
@@ -511,15 +576,17 @@ app.post("/salary/add", function (req, res) {
 app.delete("/salary/check", function (req, res) {
   console.log("req.body", req.body);
   let thang = req.body.thang;
+  let nam = req.body.nam;
   console.log("thang", thang);
+  console.log("nam", nam);
   if (!thang) {
     return res
       .status(400)
       .send({ error: true, message: "Please provide thang" });
   }
   dbTenTicker.query(
-    "DELETE FROM salary WHERE thang = ?",
-    thang,
+    "DELETE FROM salary WHERE thang = ? && nam = ?",
+    [thang, nam],
     function (error, results, fields) {
       console.log("delete salary success");
       if (error) throw error;
@@ -537,10 +604,12 @@ app.delete("/salary/check", function (req, res) {
 // Retrieve all salary_temp
 app.post("/salary_temp", function (req, res) {
   let month = req.body.month;
+  let year = req.body.year;
   console.log("month", month);
+  console.log("year", year);
   dbTenTicker.query(
-    "SELECT * FROM salary_temp WHERE thang = ?",
-    month,
+    "SELECT * FROM salary_temp WHERE thang = ? && nam = ?",
+    [month, year],
     function (error, results, fields) {
       if (error) throw error;
       return res.send({ error: false, data: results, message: "salary list." });
@@ -558,7 +627,7 @@ app.post("/salary_temp/add", function (req, res) {
       .send({ error: true, message: "Please provide salary" });
   }
   dbTenTicker.query(
-    "INSERT INTO salary_temp VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO salary_temp VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [...salary],
     function (error, results, fields) {
       if (error) throw error;
@@ -575,15 +644,17 @@ app.post("/salary_temp/add", function (req, res) {
 app.delete("/salary_temp/check", function (req, res) {
   console.log("req.body", req.body);
   let thang = req.body.thang;
+  let nam = req.body.nam;
   console.log("thang", thang);
+  console.log("nam", nam);
   if (!thang) {
     return res
       .status(400)
       .send({ error: true, message: "Please provide thang" });
   }
   dbTenTicker.query(
-    "DELETE FROM salary_temp WHERE thang = ?",
-    thang,
+    "DELETE FROM salary_temp WHERE thang = ? && nam = ?",
+    [thang, nam],
     function (error, results, fields) {
       console.log("delete salary success");
       if (error) throw error;
@@ -595,5 +666,105 @@ app.delete("/salary_temp/check", function (req, res) {
     }
   );
 });
+
+/*------------------YOUTUBE API---------------------*/
+
+//Get link authen
+app.get("/authen", function (req, res) {
+  return res.send({ error: false, data: authUrl, message: "data list." });
+});
+
+app.get("/getToken", function (req, res) {
+  let code = req.query.code;
+  console.log("code", code);
+  
+
+  oAuth2Client.getToken(code, async (err, token) => {
+    console.log('token', token);
+    // oAuth2Client.setCredentials(token);
+    // const result = await callApi(oAuth2Client);
+    // console.log("resulttttttt", result);
+    return res.send({ error: false, data: token, message: "data list." });
+  });
+});
+
+app.post('/yapi', async function(req, res) {
+  let token = req.body.token;
+  console.log('token');
+
+  oAuth2Client.setCredentials(token);
+  const result = await callApi(oAuth2Client);
+  console.log("resulttttttt", result);
+
+  return res.send({ error: false, data: result, message: "data list." });
+})
+
+// const authYoutube = async () => {
+//   //   await promisify(doc.useServiceAccountAuth)(creds);
+//   //   const info = await promisify(doc.getInfo)();
+//   //   const sheet = info.worksheets[0];
+//   //   const rows = await promisify(sheet.getRows)();
+//   //   const ids = rows.map((r) => r.id).join(",");
+
+//   fs.readFile("oauth-client-creds.json", (err, content) => {
+//     if (err) {
+//       return console.log("Cannot load client secret file:", err);
+//     }
+//     // Authorize a client with credentials, then make API call.
+//     const credentials = JSON.parse(content);
+//     const { client_secret, client_id, redirect_uris } = credentials.installed;
+//     const oAuth2Client = new google.auth.OAuth2(
+//       client_id,
+//       client_secret,
+//       redirect_uris[0]
+//     );
+//     const authUrl = oAuth2Client.generateAuthUrl({
+//       access_type: "offline",
+//       scope: scope,
+//     });
+
+//     console.log("authUrl: ", authUrl);
+
+//     const rl = readline.createInterface({
+//       input: process.stdin,
+//       output: process.stdout,
+//     });
+//     rl.question("Enter the auth code from that URL: ", (code) => {
+//       rl.close();
+//       oAuth2Client.getToken(code, (err, token) => {
+//         oAuth2Client.setCredentials(token);
+//         callApi(oAuth2Client);
+//       });
+//     });
+//   });
+
+//   callApi = (auth) => {
+//     const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+//     youtubeAnalytics.reports
+//       .query({
+//         startDate: "2017-06-05",
+//         endDate: "2021-07-03",
+//         ids: "channel==MINE",
+//         filters: "video==RT-7DORV5m8",
+//         metrics:
+//           "estimatedRevenue,views,comments,likes,dislikes,estimatedMinutesWatched,averageViewDuration",
+//       })
+//       .then(async (response) => {
+//         console.log("estimatedRevenue", response.data.rows[0][0]);
+//         console.log("views", response.data.rows[0][1]);
+//         console.log("comments", response.data.rows[0][2]);
+//         console.log("likes", response.data.rows[0][3]);
+//         console.log("dislikes", response.data.rows[0][4]);
+//         console.log("estimatedMinutesWatched", response.data.rows[0][5]);
+//         console.log("averageViewDuration", response.data.rows[0][6]);
+//         return response.data.rows;
+//       })
+//       .catch((error) =>
+//         console.log("The API returned an error: ", error.message)
+//       );
+//   };
+// };
+
+// authYoutube();
 
 module.exports = app;
