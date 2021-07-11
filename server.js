@@ -690,7 +690,7 @@ app.get("/getToken", function (req, res) {
 
 app.post('/yapi', async function(req, res) {
   let token = req.body.token;
-  console.log('token');
+  console.log('token', token);
 
   oAuth2Client.setCredentials(token);
   const result = await callApi(oAuth2Client);
