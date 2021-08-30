@@ -11,11 +11,66 @@ const { google } = require("googleapis");
 // const GoogleSpreadsheet = require('google-spreadsheet');
 const { promisify } = require("util");
 
+var cron = require("node-cron");
+const { default: axios } = require("axios");
+const { map, includes, get, isEmpty } = require("lodash");
+const moment = require("moment");
+const KEY = "AIzaSyCVcmoOusyx6ZsSrAHag5DJ-ohVQ3YyDVQ";
+const fixUserColumn = {
+  id: 0,
+  name: 1,
+  status: 2,
+  type: 3,
+  userName: 4,
+  password: 5,
+  admin: 6,
+  cm: 7,
+  cw: 8,
+  am: 9,
+  ac: 10,
+  vm: 11,
+  ve: 12,
+  other: 13,
+  tenTickers: 14,
+  tenMovie: 15,
+  tenAsia: 16,
+  tenTun: 17,
+  tenAnime: 18,
+  tlsq: 19,
+  tenKpop: 20,
+  entertainment: 21,
+  kaTun: 22,
+  beginDate: 23,
+  cms: 24,
+  nickname: 25,
+  dob: 26,
+  email: 27,
+  phone: 28,
+  bank: 29,
+  bankNumber: 30,
+  bankNote: 31,
+  note: 32,
+  luongCung: 33,
+  donGiaScrip2k: 34,
+  donGiaScrip1k: 35,
+  donGiaAudio: 36,
+  donGiaVideo2k: 37,
+  donGiaVideo1k: 38,
+};
+
 const scope = [
   "https://www.googleapis.com/auth/youtube.readonly",
   "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
   "https://www.googleapis.com/auth/youtubepartner",
 ];
+
+var monthNow = +moment().format("MM");
+var monthNowString = moment().format("YYYYMM");
+var yearNow = +moment().format("YYYY");
+
+// console.log("monthNow", monthNow);
+// console.log("monthNowString", monthNowString);
+// console.log("yearNow", yearNow);
 
 var oAuth2Client, authUrl, callApi;
 
@@ -38,30 +93,82 @@ fs.readFile("oauth-client-creds.json", (err, content) => {
   });
 });
 
-callApi = async (auth) => {
-  var yapiResponse;
-  const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
-  await youtubeAnalytics.reports
-    .query({
-      startDate: "2017-06-05",
-      endDate: "2021-07-03",
-      ids: "channel==MINE",
-      filters: "video==RT-7DORV5m8",
-      metrics:
-        "estimatedRevenue,views,comments,likes,dislikes,estimatedMinutesWatched,averageViewDuration",
+function YouTubeGetID(url) {
+  var ID = "";
+  url = url
+    .replace(/(>|<)/gi, "")
+    .split(/(vi\/|v=|\/v\/|youtu\.be\/|\/embed\/)/);
+  if (url[2] !== undefined) {
+    ID = url[2].split(/[^0-9a-z_\-]/i);
+    ID = ID[0];
+  } else {
+    ID = url;
+  }
+  return ID;
+}
+
+const getChannelId = async (auth) => {
+  var getChannelIdResponse = [];
+  const youtubeChannelId = google.youtube({ version: "v3", auth });
+  await youtubeChannelId.channels
+    .list({
+      part: "snippet,contentDetails,statistics",
+      mine: "true",
     })
-    .then(async (response) => {
-      // console.log("estimatedRevenue", response.data.rows[0][0]);
-      // console.log("views", response.data.rows[0][1]);
-      // console.log("comments", response.data.rows[0][2]);
-      // console.log("likes", response.data.rows[0][3]);
-      // console.log("dislikes", response.data.rows[0][4]);
-      // console.log("estimatedMinutesWatched", response.data.rows[0][5]);
-      // console.log("averageViewDuration", response.data.rows[0][6]);
-      yapiResponse = response.data.rows;
+    .then((response) => {
+      console.log("response in getChannelId", response.data.items[0]);
+      getChannelIdResponse = response.data.items[0].id;
     })
     .catch((error) => console.log("The API returned an error: ", error));
-  console.log("yapiResponse", yapiResponse);
+  return getChannelIdResponse;
+};
+
+callApi = async (auth, videoIds) => {
+  // console.log("videoIds", videoIds);
+  var yapiResponse = [];
+  if (videoIds.length > 0) {
+    const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+    for (let i = 0; i < videoIds.length; i++) {
+      await youtubeAnalytics.reports
+        .query({
+          startDate: "2021-06-01",
+          endDate: "2021-06-30",
+          ids: "channel==MINE",
+          filters: `video==${videoIds[i]}`,
+          // dimensions: 'ageGroup,gender',
+          metrics:
+            "estimatedRevenue,views,comments,likes,dislikes,estimatedMinutesWatched,averageViewDuration,annotationClickThroughRate,subscribersGained,subscribersLost,redViews,shares,averageViewPercentage",
+        })
+        .then(async (response) => {
+          yapiResponse = [...yapiResponse, response.data.rows];
+        })
+        .catch((error) => console.log("The API returned an error: ", error));
+    }
+  } else {
+    const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+    await youtubeAnalytics.reports
+      .query({
+        startDate: "2021-06-01",
+        endDate: "2021-06-30",
+        ids: "channel==MINE",
+        // filters: "video==tZ1TgcwRb_0",
+        // dimensions: 'ageGroup,gender',
+        metrics:
+          "estimatedRevenue,views,comments,likes,dislikes,estimatedMinutesWatched,averageViewDuration,annotationClickThroughRate,subscribersGained,subscribersLost,redViews,shares,averageViewPercentage",
+      })
+      .then(async (response) => {
+        // console.log("estimatedRevenue", response.data.rows[0][0]);
+        // console.log("views", response.data.rows[0][1]);
+        // console.log("comments", response.data.rows[0][2]);
+        // console.log("likes", response.data.rows[0][3]);
+        // console.log("dislikes", response.data.rows[0][4]);
+        // console.log("estimatedMinutesWatched", response.data.rows[0][5]);
+        // console.log("averageViewDuration", response.data.rows[0][6]);
+        yapiResponse = response.data.rows;
+      })
+      .catch((error) => console.log("The API returned an error: ", error));
+  }
+  // console.log("yapiResponse", yapiResponse);
   return yapiResponse;
 };
 
@@ -269,7 +376,7 @@ app.get("/tenticker/:id", function (req, res) {
 // Add a new data
 app.post("/tenticker/add", function (req, res) {
   let data = req.body.data;
-  console.log("data", data);
+  // console.log("data", data);
   if (!data) {
     return res
       .status(400)
@@ -293,8 +400,8 @@ app.post("/tenticker/add", function (req, res) {
 app.put("/tenticker", function (req, res) {
   let data_id = req.body.data_id;
   let data = req.body.data;
-  console.log("data_id", data_id);
-  console.log("data", data[22]);
+  // console.log("data_id", data_id);
+  // console.log("data", data[22]);
   if (!data_id || !data) {
     return res
       .status(400)
@@ -316,9 +423,9 @@ app.put("/tenticker", function (req, res) {
 
 //  Delete data
 app.delete("/tenticker", function (req, res) {
-  console.log("req.body", req.body);
+  // console.log("req.body", req.body);
   let data_id = req.body.data_id;
-  console.log("data_id", data_id);
+  // console.log("data_id", data_id);
   if (!data_id) {
     return res
       .status(400)
@@ -665,6 +772,64 @@ app.delete("/salary_temp/check", function (req, res) {
   );
 });
 
+/*------------------REPORT---------------------*/
+// Retrieve all data report cw
+app.get("/reportCW", function (req, res) {
+  // console.log("req", req.query.monthYear);
+  let month_year = req.query.monthYear;
+  if (!month_year) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide monthYear" });
+  }
+  dbTenTicker.query(
+    "SELECT * FROM report_cw where month_year = ? ORDER BY id ASC",
+    month_year,
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({ error: false, data: results, message: "data list." });
+    }
+  );
+});
+
+// Retrieve all data report ac
+app.get("/reportAC", function (req, res) {
+  // console.log("req", req.query.monthYear);
+  let month_year = req.query.monthYear;
+  if (!month_year) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide monthYear" });
+  }
+  dbTenTicker.query(
+    "SELECT * FROM report_ac where month_year = ? ORDER BY id ASC",
+    month_year,
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({ error: false, data: results, message: "data list." });
+    }
+  );
+});
+
+// Retrieve all data report ve
+app.get("/reportVE", function (req, res) {
+  // console.log("req", req.query.monthYear);
+  let month_year = req.query.monthYear;
+  if (!month_year) {
+    return res
+      .status(400)
+      .send({ error: true, message: "Please provide monthYear" });
+  }
+  dbTenTicker.query(
+    "SELECT * FROM report_ve where month_year = ? ORDER BY id ASC",
+    month_year,
+    function (error, results, fields) {
+      if (error) throw error;
+      return res.send({ error: false, data: results, message: "data list." });
+    }
+  );
+});
+
 /*------------------YOUTUBE API---------------------*/
 
 //Get link authen
@@ -687,81 +852,574 @@ app.get("/getToken", function (req, res) {
 
 app.post("/yapi", async function (req, res) {
   let token = req.body.token;
+  let videoIds = req.body.videoIds;
   console.log("token", token);
 
   oAuth2Client.setCredentials(token);
-  const result = await callApi(oAuth2Client);
+  const result = await callApi(oAuth2Client, videoIds);
   console.log("resulttttttt", result);
 
   return res.send({ error: false, data: result, message: "data list." });
 });
 
-// const authYoutube = async () => {
-//   //   await promisify(doc.useServiceAccountAuth)(creds);
-//   //   const info = await promisify(doc.getInfo)();
-//   //   const sheet = info.worksheets[0];
-//   //   const rows = await promisify(sheet.getRows)();
-//   //   const ids = rows.map((r) => r.id).join(",");
+app.post("/getChannelId", async function (req, res) {
+  let token = req.body.token;
+  console.log("token getChannelId", token);
 
-//   fs.readFile("oauth-client-creds.json", (err, content) => {
-//     if (err) {
-//       return console.log("Cannot load client secret file:", err);
-//     }
-//     // Authorize a client with credentials, then make API call.
-//     const credentials = JSON.parse(content);
-//     const { client_secret, client_id, redirect_uris } = credentials.installed;
-//     const oAuth2Client = new google.auth.OAuth2(
-//       client_id,
-//       client_secret,
-//       redirect_uris[0]
+  oAuth2Client.setCredentials(token);
+  const result = await getChannelId(oAuth2Client);
+  console.log("result getChannelId", result);
+  return res.send({ error: false, data: result, message: "getChannelId" });
+});
+
+/*------------------SCHEDULE REPORT ---------------------*/
+
+//Schedule CW Report
+
+var taskCW = cron.schedule(
+  // "*/2 * * * *",
+  "*/720 * * * *",
+  () => {
+    dbTenTicker.query(
+      "DELETE FROM report_cw WHERE month_year = ?",
+      [monthNowString],
+      function (error, results, fields) {
+        axios
+          .get(
+            "https://sheets.googleapis.com/v4/spreadsheets/1NZjfyE4uNQCNBwZfE2joyTuibWab-R5TK5N7R5LPpIA/values:batchGet?ranges=Sheet2&majorDimension=ROWS&key=AIzaSyByXzekuWCb4pI-ZTD7yEAGVYV0224Mc6Q"
+          )
+          .then((res) => {
+            const data = res.data.valueRanges[0].values;
+            const filterData = data.filter((item, index) => {
+              return item[fixUserColumn.cw] === "1" && index !== 0;
+            });
+            const mapData = filterData.map((item, index) => {
+              return {
+                id: item[fixUserColumn.id],
+                name: item[fixUserColumn.name],
+                status: item[fixUserColumn.status],
+                type: item[fixUserColumn.type],
+                cms: item[fixUserColumn.cms],
+              };
+            });
+            dbTenTicker.query(
+              "SELECT * FROM data",
+              function (error, results, fields) {
+                if (error) throw error;
+                const mapDataSource = map(mapData, async (item, index) => {
+                  let countContent2k = 0,
+                    countContent1k = 0,
+                    viewCount = 0;
+
+                  for (let i = 0; i < results.length; i++) {
+                    if (
+                      includes(results[i].writer_name, item.cms) &&
+                      +moment(results[i].public_date).format("MM") ===
+                        monthNow &&
+                      +moment(results[i].public_date).format("YYYY") === yearNow
+                    ) {
+                      // console.log("linkYoutube", results[i].link_youtube);
+                      const video_id = YouTubeGetID(results[i].link_youtube);
+
+                      const payload = {
+                        baseURL: "https://www.googleapis.com/youtube/v3/videos",
+                        params: {
+                          part: "statistics",
+                          key: KEY,
+                          id: video_id,
+                        },
+                      };
+
+                      const youtube = axios.create(payload);
+                      if (results[i].salary_index === 10) {
+                        countContent2k++;
+                      } else if (results[i].salary_index === 5) {
+                        countContent1k++;
+                      }
+                      const response = await youtube.get("/");
+                      viewCount += !!get(
+                        response,
+                        "data.items[0].statistics.viewCount"
+                      )
+                        ? +get(response, "data.items[0].statistics.viewCount")
+                        : 0;
+                    }
+                  }
+                  return {
+                    san_luong_content_2k: countContent2k,
+                    san_luong_content_1k: countContent1k,
+                    tong_san_luong_content: countContent2k + countContent1k,
+                    views_count: !!viewCount ? viewCount : 0,
+                    views_per_content:
+                      countContent2k + countContent1k === 0
+                        ? 0
+                        : !!viewCount
+                        ? viewCount / (countContent2k + countContent1k)
+                        : 0,
+                    ...item,
+                  };
+                });
+                for (let i = 0; i < mapDataSource.length; i++) {
+                  let id,
+                    name,
+                    status,
+                    type,
+                    san_luong_content_2k,
+                    san_luong_content_1k,
+                    tong_san_luong_content,
+                    views_count,
+                    views_per_content;
+                  mapDataSource[i]
+                    .then((result) => {
+                      id = result.id;
+                      name = result.name;
+                      status = result.status;
+                      type = result.type;
+                      san_luong_content_2k = result.san_luong_content_2k;
+                      san_luong_content_1k = result.san_luong_content_1k;
+                      tong_san_luong_content = result.tong_san_luong_content;
+                      views_count = result.views_count;
+                      views_per_content = result.views_per_content;
+
+                      const dataReportCW = [
+                        id,
+                        name,
+                        status,
+                        type,
+                        san_luong_content_2k,
+                        san_luong_content_1k,
+                        tong_san_luong_content,
+                        views_count,
+                        views_per_content,
+                        monthNowString,
+                      ];
+                      if (error) throw error;
+                      dbTenTicker.query(
+                        "INSERT INTO report_cw VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        [...dataReportCW],
+                        function (error, results, fields) {
+                          if (error) throw error;
+                          console.log("insert success report cw", results);
+                        }
+                      );
+                    })
+                    .catch((e) => {
+                      console.log("error", e);
+                    });
+                  console.log("id", mapDataSource[i].id);
+                }
+              }
+            );
+          });
+      }
+    );
+  },
+  {
+    scheduled: false,
+  }
+);
+
+//Schedule VE Report
+
+var taskVE = cron.schedule(
+  // "*/2 * * * *",
+  "*/720 * * * *",
+  () => {
+    dbTenTicker.query(
+      "DELETE FROM report_ve WHERE month_year = ?",
+      [monthNowString],
+      function (error, results, fields) {
+        axios
+          .get(
+            "https://sheets.googleapis.com/v4/spreadsheets/1NZjfyE4uNQCNBwZfE2joyTuibWab-R5TK5N7R5LPpIA/values:batchGet?ranges=Sheet2&majorDimension=ROWS&key=AIzaSyByXzekuWCb4pI-ZTD7yEAGVYV0224Mc6Q"
+          )
+          .then((res) => {
+            const data = res.data.valueRanges[0].values;
+            const filterData = data.filter((item, index) => {
+              return item[fixUserColumn.ve] === "1" && index !== 0;
+            });
+            const mapData = filterData.map((item, index) => {
+              return {
+                id: item[fixUserColumn.id],
+                name: item[fixUserColumn.name],
+                status: item[fixUserColumn.status],
+                type: item[fixUserColumn.type],
+                cms: item[fixUserColumn.cms],
+              };
+            });
+            dbTenTicker.query(
+              "SELECT * FROM data",
+              function (error, results, fields) {
+                if (error) throw error;
+                const mapDataSource = map(mapData, async (item, index) => {
+                  let countVideo2k = 0,
+                    countVideo1k = 0,
+                    viewCount = 0;
+
+                  for (let i = 0; i < results.length; i++) {
+                    if (
+                      includes(results[i].editor_name, item.cms) &&
+                      +moment(results[i].public_date).format("MM") ===
+                        monthNow &&
+                      +moment(results[i].public_date).format("YYYY") === yearNow
+                    ) {
+                      // console.log("linkYoutube", results[i].link_youtube);
+                      const video_id = YouTubeGetID(results[i].link_youtube);
+
+                      const payload = {
+                        baseURL: "https://www.googleapis.com/youtube/v3/videos",
+                        params: {
+                          part: "statistics",
+                          key: KEY,
+                          id: video_id,
+                        },
+                      };
+
+                      const youtube = axios.create(payload);
+                      if (results[i].salary_index === 10) {
+                        countVideo2k++;
+                      } else if (results[i].salary_index === 5) {
+                        countVideo1k++;
+                      }
+                      const response = await youtube.get("/");
+                      viewCount += !!get(
+                        response,
+                        "data.items[0].statistics.viewCount"
+                      )
+                        ? +get(response, "data.items[0].statistics.viewCount")
+                        : 0;
+                    }
+                  }
+                  return {
+                    san_luong_video_2k: countVideo2k,
+                    san_luong_video_1k: countVideo1k,
+                    tong_san_luong_video: countVideo2k + countVideo1k,
+                    views_count: !!viewCount ? viewCount : 0,
+                    views_per_video:
+                      countVideo2k + countVideo1k === 0
+                        ? 0
+                        : !!viewCount
+                        ? viewCount / (countVideo2k + countVideo1k)
+                        : 0,
+                    ...item,
+                  };
+                });
+                for (let i = 0; i < mapDataSource.length; i++) {
+                  let id,
+                    name,
+                    status,
+                    type,
+                    san_luong_video_2k,
+                    san_luong_video_1k,
+                    tong_san_luong_video,
+                    views_count,
+                    views_per_video;
+                  mapDataSource[i]
+                    .then((result) => {
+                      id = result.id;
+                      name = result.name;
+                      status = result.status;
+                      type = result.type;
+                      san_luong_video_2k = result.san_luong_video_2k;
+                      san_luong_video_1k = result.san_luong_video_1k;
+                      tong_san_luong_video = result.tong_san_luong_video;
+                      views_count = result.views_count;
+                      views_per_video = result.views_per_video;
+
+                      const dataReportVE = [
+                        id,
+                        name,
+                        status,
+                        type,
+                        san_luong_video_2k,
+                        san_luong_video_1k,
+                        tong_san_luong_video,
+                        views_count,
+                        views_per_video,
+                        monthNowString,
+                      ];
+                      if (error) throw error;
+                      dbTenTicker.query(
+                        "INSERT INTO report_ve VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        [...dataReportVE],
+                        function (error, results, fields) {
+                          if (error) throw error;
+                          console.log("insert success report ve", results);
+                        }
+                      );
+                    })
+                    .catch((e) => {
+                      console.log("error", e);
+                    });
+                  console.log("id", mapDataSource[i].id);
+                }
+              }
+            );
+          });
+      }
+    );
+  },
+  {
+    scheduled: false,
+  }
+);
+
+//Schedule AC Report
+
+var taskAC = cron.schedule(
+  // "*/2 * * * *",
+  "*/720 * * * *",
+  () => {
+    dbTenTicker.query(
+      "DELETE FROM report_ac WHERE month_year = ?",
+      [monthNowString],
+      function (error, results, fields) {
+        axios
+          .get(
+            "https://sheets.googleapis.com/v4/spreadsheets/1NZjfyE4uNQCNBwZfE2joyTuibWab-R5TK5N7R5LPpIA/values:batchGet?ranges=Sheet2&majorDimension=ROWS&key=AIzaSyByXzekuWCb4pI-ZTD7yEAGVYV0224Mc6Q"
+          )
+          .then((res) => {
+            const data = res.data.valueRanges[0].values;
+            const filterData = data.filter((item, index) => {
+              return item[fixUserColumn.ac] === "1" && index !== 0;
+            });
+            const mapData = filterData.map((item, index) => {
+              return {
+                id: item[fixUserColumn.id],
+                name: item[fixUserColumn.name],
+                status: item[fixUserColumn.status],
+                type: item[fixUserColumn.type],
+                cms: item[fixUserColumn.cms],
+              };
+            });
+            dbTenTicker.query(
+              "SELECT * FROM data",
+              function (error, results, fields) {
+                if (error) throw error;
+                const mapDataSource = map(mapData, async (item, index) => {
+                  let countAudio = 0,
+                    viewCount = 0;
+
+                  for (let i = 0; i < results.length; i++) {
+                    if (
+                      includes(results[i].composer_name, item.cms) &&
+                      +moment(results[i].public_date).format("MM") ===
+                        monthNow &&
+                      +moment(results[i].public_date).format("YYYY") === yearNow
+                    ) {
+                      // console.log("linkYoutube", results[i].link_youtube);
+                      const video_id = YouTubeGetID(results[i].link_youtube);
+
+                      const payload = {
+                        baseURL: "https://www.googleapis.com/youtube/v3/videos",
+                        params: {
+                          part: "statistics",
+                          key: KEY,
+                          id: video_id,
+                        },
+                      };
+
+                      const youtube = axios.create(payload);
+                      countAudio++;
+                      const response = await youtube.get("/");
+                      viewCount += !!get(
+                        response,
+                        "data.items[0].statistics.viewCount"
+                      )
+                        ? +get(response, "data.items[0].statistics.viewCount")
+                        : 0;
+                    }
+                  }
+                  return {
+                    count_audio: countAudio,
+                    views_count: !!viewCount ? viewCount : 0,
+                    views_per_audio:
+                      countAudio === 0
+                        ? 0
+                        : !!viewCount
+                        ? viewCount / countAudio
+                        : 0,
+                    ...item,
+                  };
+                });
+                for (let i = 0; i < mapDataSource.length; i++) {
+                  let id,
+                    name,
+                    status,
+                    type,
+                    count_audio,
+                    views_count,
+                    views_per_audio;
+                  mapDataSource[i]
+                    .then((result) => {
+                      id = result.id;
+                      name = result.name;
+                      status = result.status;
+                      type = result.type;
+                      count_audio = result.count_audio;
+                      views_count = result.views_count;
+                      views_per_audio = result.views_per_audio;
+
+                      const dataReportAC = [
+                        id,
+                        name,
+                        status,
+                        type,
+                        count_audio,
+                        views_count,
+                        views_per_audio,
+                        monthNowString,
+                      ];
+                      if (error) throw error;
+                      dbTenTicker.query(
+                        "INSERT INTO report_ac VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        [...dataReportAC],
+                        function (error, results, fields) {
+                          if (error) throw error;
+                          console.log("insert success report ac", results);
+                        }
+                      );
+                    })
+                    .catch((e) => {
+                      console.log("error", e);
+                    });
+                  console.log("id", mapDataSource[i].id);
+                }
+              }
+            );
+          });
+      }
+    );
+  },
+  {
+    scheduled: false,
+  }
+);
+
+//Schedule AC Report
+
+// var taskMapView = cron.schedule(
+//   "*/1 * * * * *",
+//   // "*/720 * * * *",
+//   () => {
+//     dbTenTicker.query(
+//       "TRUNCATE TABLE dataMapView",
+//       function (error, results, field) {
+//         if (error) throw error;
+//         dbTenTicker.query(
+//           "SELECT * FROM data",
+//           function (error, results, fields) {
+//             if (error) throw error;
+//             // console.log("results", results);
+
+//             const mapDataSource = map(results, async (item, index) => {
+//               let viewCount = 0;
+//               // console.log("item", item.link_youtube);
+//               if (!isEmpty(item.link_youtube)) {
+//                 const video_id = YouTubeGetID(item.link_youtube);
+//                 // console.log("video_id", video_id);
+//                 if (video_id.length !== 11) {
+//                   viewCount = 0;
+//                 } else {
+//                   const payload = {
+//                     baseURL: "https://www.googleapis.com/youtube/v3/videos",
+//                     params: {
+//                       part: "statistics",
+//                       key: KEY,
+//                       id: video_id,
+//                     },
+//                   };
+
+//                   const youtube = axios.create(payload);
+//                   const response = await youtube.get("/");
+//                   viewCount = !!get(
+//                     response,
+//                     "data.items[0].statistics.viewCount"
+//                   )
+//                     ? +get(response, "data.items[0].statistics.viewCount")
+//                     : 0;
+//                 }
+//               } else {
+//                 viewCount = 0;
+//               }
+//               return {
+//                 ...item,
+//                 viewCount,
+//               };
+//             });
+//             for (let i = 0; i < mapDataSource.length; i++) {
+//               mapDataSource[i]
+//                 .then((result) => {
+//                   // console.log("result", result);
+//                   const dataMapView = [
+//                     result.id,
+//                     result.content_code,
+//                     result.writer_code,
+//                     result.full_title,
+//                     result.content_raw,
+//                     result.writer_name,
+//                     result.content_status,
+//                     result.content_final,
+//                     result.content_note,
+//                     result.content_date,
+//                     result.composer_code,
+//                     result.composer_name,
+//                     result.audio_date,
+//                     result.link_audio,
+//                     result.audio_status,
+//                     result.audio_note,
+//                     result.writer_nick,
+//                     result.composer_nick,
+//                     result.editor_name,
+//                     result.video_date,
+//                     result.editor_code,
+//                     result.link_video,
+//                     result.content_code,
+//                     result.video_status,
+//                     result.video_note,
+//                     result.link_youtube,
+//                     result.public_date,
+//                     result.is_first_public,
+//                     result.is_first_content_final,
+//                     result.is_first_audio,
+//                     result.is_first_video,
+//                     result.add_composer_date,
+//                     result.add_ve_date,
+//                     result.confirm_content_date,
+//                     result.confirm_audio_date,
+//                     result.salary_index,
+//                     result.is_new,
+//                     result.viewCount,
+//                   ];
+//                   dbTenTicker.query(
+//                     "INSERT INTO dataMapView VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+//                     [...dataMapView],
+//                     function (error, results, fields) {
+//                       if (error) throw error;
+//                       console.log("Insert success");
+//                     }
+//                   );
+//                 })
+//                 .catch((e) => {
+//                   console.log("error", e);
+//                 });
+//             }
+//           }
+//         );
+//       }
 //     );
-//     const authUrl = oAuth2Client.generateAuthUrl({
-//       access_type: "offline",
-//       scope: scope,
-//     });
+//   },
+//   {
+//     scheduled: false,
+//   }
+// );
 
-//     console.log("authUrl: ", authUrl);
+// taskMapView.start();
 
-//     const rl = readline.createInterface({
-//       input: process.stdin,
-//       output: process.stdout,
-//     });
-//     rl.question("Enter the auth code from that URL: ", (code) => {
-//       rl.close();
-//       oAuth2Client.getToken(code, (err, token) => {
-//         oAuth2Client.setCredentials(token);
-//         callApi(oAuth2Client);
-//       });
-//     });
-//   });
-
-//   callApi = (auth) => {
-//     const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
-//     youtubeAnalytics.reports
-//       .query({
-//         startDate: "2017-06-05",
-//         endDate: "2021-07-03",
-//         ids: "channel==MINE",
-//         filters: "video==RT-7DORV5m8",
-//         metrics:
-//           "estimatedRevenue,views,comments,likes,dislikes,estimatedMinutesWatched,averageViewDuration",
-//       })
-//       .then(async (response) => {
-//         console.log("estimatedRevenue", response.data.rows[0][0]);
-//         console.log("views", response.data.rows[0][1]);
-//         console.log("comments", response.data.rows[0][2]);
-//         console.log("likes", response.data.rows[0][3]);
-//         console.log("dislikes", response.data.rows[0][4]);
-//         console.log("estimatedMinutesWatched", response.data.rows[0][5]);
-//         console.log("averageViewDuration", response.data.rows[0][6]);
-//         return response.data.rows;
-//       })
-//       .catch((error) =>
-//         console.log("The API returned an error: ", error.message)
-//       );
-//   };
-// };
-
-// authYoutube();
+if (!isProduct) {
+  taskCW.start();
+  taskVE.start();
+  taskAC.start();
+}
 
 module.exports = app;
