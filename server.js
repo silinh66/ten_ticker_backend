@@ -64,13 +64,13 @@ const scope = [
   "https://www.googleapis.com/auth/youtubepartner",
 ];
 
-var monthNow = +moment().format("MM");
-var monthNowString = moment().format("YYYYMM");
+var monthNow = +moment().subtract(1, "months").format("MM");
+var monthNowString = moment().subtract(1, "months").format("YYYYMM");
 var yearNow = +moment().format("YYYY");
 
-// console.log("monthNow", monthNow);
-// console.log("monthNowString", monthNowString);
-// console.log("yearNow", yearNow);
+console.log("monthNow", monthNow);
+console.log("monthNowString", monthNowString);
+console.log("yearNow", yearNow);
 
 var oAuth2Client, authUrl, callApi;
 
@@ -877,8 +877,8 @@ app.post("/getChannelId", async function (req, res) {
 //Schedule CW Report
 
 var taskCW = cron.schedule(
-  // "*/2 * * * *",
-  "*/720 * * * *",
+  "*/2 * * * *",
+  // "*/720 * * * *",
   () => {
     dbTenTicker.query(
       "DELETE FROM report_cw WHERE month_year = ?",
@@ -1022,8 +1022,8 @@ var taskCW = cron.schedule(
 //Schedule VE Report
 
 var taskVE = cron.schedule(
-  // "*/2 * * * *",
-  "*/720 * * * *",
+  "*/2 * * * *",
+  // "*/720 * * * *",
   () => {
     dbTenTicker.query(
       "DELETE FROM report_ve WHERE month_year = ?",
@@ -1167,8 +1167,8 @@ var taskVE = cron.schedule(
 //Schedule AC Report
 
 var taskAC = cron.schedule(
-  // "*/2 * * * *",
-  "*/720 * * * *",
+  "*/2 * * * *",
+  // "*/720 * * * *",
   () => {
     dbTenTicker.query(
       "DELETE FROM report_ac WHERE month_year = ?",
@@ -1417,6 +1417,7 @@ var taskAC = cron.schedule(
 // taskMapView.start();
 
 if (!isProduct) {
+  console.log("run report");
   taskCW.start();
   taskVE.start();
   taskAC.start();
