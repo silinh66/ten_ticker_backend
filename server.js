@@ -64,8 +64,8 @@ const scope = [
   "https://www.googleapis.com/auth/youtubepartner",
 ];
 
-var monthNow = +moment().subtract(1, "months").format("MM");
-var monthNowString = moment().subtract(1, "months").format("YYYYMM");
+var monthNow = +moment().format("MM");
+var monthNowString = moment().format("YYYYMM");
 var yearNow = +moment().format("YYYY");
 
 console.log("monthNow", monthNow);
@@ -173,6 +173,8 @@ callApi = async (auth, videoIds) => {
 };
 
 var isProduct = false;
+
+let minutes_update_report = isProduct ? 720 : 1; //time to run cron task (minutes)
 
 //dev
 
@@ -877,7 +879,7 @@ app.post("/getChannelId", async function (req, res) {
 //Schedule CW Report
 
 var taskCW = cron.schedule(
-  "*/2 * * * *",
+  `*/${minutes_update_report} * * * *`,
   // "*/720 * * * *",
   () => {
     dbTenTicker.query(
@@ -1022,7 +1024,7 @@ var taskCW = cron.schedule(
 //Schedule VE Report
 
 var taskVE = cron.schedule(
-  "*/2 * * * *",
+  `*/${minutes_update_report} * * * *`,
   // "*/720 * * * *",
   () => {
     dbTenTicker.query(
@@ -1167,7 +1169,7 @@ var taskVE = cron.schedule(
 //Schedule AC Report
 
 var taskAC = cron.schedule(
-  "*/2 * * * *",
+  `*/${minutes_update_report} * * * *`,
   // "*/720 * * * *",
   () => {
     dbTenTicker.query(
